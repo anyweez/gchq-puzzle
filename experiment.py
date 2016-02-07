@@ -1,6 +1,39 @@
+import random
 # Local imports
 import matrix as puzzle
 
+##
+# Create a random square matrix of the specified dimension.
+##
+def make(dim):
+    matrix = puzzle.Matrix(dim)
+    
+    # Create the matrix
+    for y in xrange(dim):
+        trues = random.randint(0, dim)
+        
+        row = [row < trues for row in xrange(dim)]
+        random.shuffle(row)
+        
+        for x in xrange(dim):
+            matrix.set(x, y, row[x])
+
+    # Now derive the run constraints
+    for y in xrange(dim):
+        matrix.xruns(y, puzzle.row2run(matrix._getrow(y)))
+
+    for x in xrange(dim):
+        matrix.yruns(x, puzzle.row2run(matrix._getcol(x)))
+
+    print '-- input --'
+    matrix.show()
+    print ''
+    # Reset the matrix
+    for y in xrange(dim):
+        for x in xrange(dim):
+            matrix.set(x, y, False)
+            
+    return matrix
 #
 #   X   -   X   -   -
 #   -   -   X   X   X
@@ -26,6 +59,63 @@ def test5():
     
     return matrix
 
+#
+#   X   -   -   X   X   X
+#   X   X   -   -   X   -
+#   X   -   X   X   -   X
+#   -   -   -   X   -   -
+#   -   X   X   -   X   -
+#   X   X   -   X   -   X
+#
+def test6():
+    DIMENSION = 6
+    matrix = puzzle.Matrix(DIMENSION)
+
+    matrix.xruns(0, [1, 3])
+    matrix.xruns(1, [2, 1])
+    matrix.xruns(2, [2, 1, 1])
+    matrix.xruns(3, [1])
+    matrix.xruns(4, [1, 2])
+    matrix.xruns(5, [1, 2, 1])
+    
+    matrix.yruns(0, [3, 1])
+    matrix.yruns(1, [2, 1])
+    matrix.yruns(2, [1, 1])
+    matrix.yruns(3, [1, 1, 2])
+    matrix.yruns(4, [2, 1])
+    matrix.yruns(5, [1, 1, 1])
+    
+    return matrix
+#
+#   X   -   -   X   X   X   -
+#   -   X   X   X   -   X   -
+#   X   -   X   -   X   -   X
+#   X   -   X   X   -   -   X
+#   -   X   -   -   -   X   X
+#   X   -   X   -   X   X   -
+#   -   X   X   X   -   -   -
+#
+def test7():
+    DIMENSION = 7
+    matrix = puzzle.Matrix(DIMENSION)
+
+    matrix.xruns(0, [1, 3])
+    matrix.xruns(1, [3, 1])
+    matrix.xruns(2, [1, 1, 1, 1])
+    matrix.xruns(3, [1, 2, 1])
+    matrix.xruns(4, [1, 2])
+    matrix.xruns(5, [1, 1, 2])
+    matrix.xruns(6, [3])
+    
+    matrix.yruns(0, [1, 2, 1])
+    matrix.yruns(1, [1, 1, 1])
+    matrix.yruns(2, [3, 2])
+    matrix.yruns(3, [2, 1, 1])
+    matrix.yruns(4, [1, 1, 1])
+    matrix.yruns(5, [2, 2])
+    matrix.yruns(6, [3])
+    
+    return matrix
 #
 #   X   -   -   X   X   X   -   -   X   X
 #   X   X   -   -   X   -   X   X   X   -

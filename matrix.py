@@ -1,5 +1,21 @@
 import collections
 
+def row2run(row):
+    run = []
+    count = 0
+    
+    for val in row:
+        if val:
+            count += 1
+        elif count > 0:
+            run.append(count)
+            count = 0
+
+    if count > 0:
+        run.append(count)
+
+    return run
+
 class Matrix(object):
     def __init__(self, dim):
         self._dim = dim
@@ -11,6 +27,9 @@ class Matrix(object):
         
         self._xruns = [None for x in xrange(dim)]
         self._yruns = [None for x in xrange(dim)]
+        
+        self._count_actual = collections.Counter()
+        self._count_target = collections.Counter()
         
     def set(self, x, y, val):
         # Intentionally inverted. Data is stored per row, so first select
@@ -39,86 +58,64 @@ class Matrix(object):
         return self._yruns[y]
         
     ## Determines whether a row meets the runs constraints
-    ## TODO: remove zeros just to make the API a bit more robust
     def _validate(self, row, run):
-        actual = collections.Counter()
+        self._count_actual.clear()
+        self._count_target.clear()
+        
         count = 0
     
         for val in row:
             if val:
                 count += 1
             elif count > 0:
-                actual[count] += 1
+                self._count_actual[count] += 1
                 count = 0
 
         if count > 0:
-            actual[count] += 1
+            self._count_actual[count] += 1
 
-        target = collections.Counter()
-        
         for val in run:
-            target[val] += 1
+            self._count_target[val] += 1
             
-        return actual == target
-#
-#        count = 0
-#        actual = set()
-    
-#        for val in row:
-#            if val:
-#                count += 1
-#            elif count > 0:
-#                actual.add(count)
-#                count = 0
-    
-        # Leftovers at the end still need to be added
-#        if count > 0:
-#            actual.add(count)
-        
-#        print 'actual: %s, run: %s' % (actual, run)
-#        return len(actual.symmetric_difference(run)) is 0
-#        return len(actual.symmetric_difference(run)) is 0
-#        return (actual.issubset(run) and actual.issuperset(run))
-        
-#        actual = sorted(actual)
-#        for i, val in enumerate(sorted(run)):
-#            try:
-#                if actual[i] != val:
-#                    return False
-#            except IndexError:
-#                return False
-#        
-#        return True
+        return self._count_actual == self._count_target
 
     def validate_row(self, x):
-        valid = self._validate(self._getrow(x), self._xruns[x])
-#        print 'Row %d valid? %s' % (x, valid)
-        
-        return valid
+        return self._validate(self._getrow(x), self._xruns[x])   
     
     def validate_col(self, y):
-        valid = self._validate(self._getcol(y), self._yruns[y])
-#        print 'Col %d valid? %s' % (y, valid)
-        
-        return valid
+        return self._validate(self._getcol(y), self._yruns[y])
     
+    ##
+    # Checks whether the matrix is valid according to the run restrictions
+    # that've been placed on it.
+    ##
     def validate(self, check_rows=True, check_cols=True):
-        rows = True
-        cols = True
-        
         if check_rows:
-            rows = reduce(lambda x, y: x and y, [self.validate_row(i) for i in xrange(self._dim)])
-        
-        # Shortcut the second (slower) evaluation if the first one already fails.
-        # TODO: why do I ever generate invalid rows if I'm using generators that only provide valid rows?
-        if rows is False:
-            return False
-        
+            for i in xrange(self._dim):
+                if not self.validate_row(i):
+                    return False
+
         if check_cols:
-            cols = reduce(lambda x, y: x and y, [self.validate_col(i) for i in xrange(self._dim)])
+            for i in xrange(self._dim):
+                if not self.validate_col(i):
+                    return False
+
+        return True
+    ##
+    # Returns true if the matrix contains a column that makes a run impossible.
+    ##
+    def overloaded(self):
+        for col in xrange(self._dim):
+            run = row2run(self._getcol(col))
+
+            # If we ever find a case where we've got a longer run than the longest
+            # expected run, we've found an overloaded matrix.
+            if len(run) > 0 and len(self._getyruns(col)) and max(run) > max(self._getyruns(col)):
+                print 'OVERLOADED'
+                return True
         
-        return (rows and cols)
-            
+        return False
+        
     def show(self):
         for row in self._rows:
             print '  '.join(['X' if val else '-' for val in row])
