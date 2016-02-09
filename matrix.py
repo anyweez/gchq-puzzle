@@ -1,4 +1,4 @@
-import collections
+import collections, random
 
 def row2run(row):
     run = []
@@ -31,11 +31,40 @@ class Matrix(object):
         self._count_actual = collections.Counter()
         self._count_target = collections.Counter()
         
+        self._row_mapping = []
+        
     def set(self, x, y, val):
         # Intentionally inverted. Data is stored per row, so first select
         # the correct row, then select the correct column in that row.
         self._rows[y][x] = val
-        
+
+    ## TODO: when this function is called, reorganize rows so that the most
+    ## constrained come first. 
+#    def pack(self):
+#        self._row_mapping = [i for i in xrange(self._dim)]
+#        self._row_mapping[0] = 1
+#        self._row_mapping[1] = 0
+#        random.shuffle(self._row_mapping)
+#        
+#        orig_rows = [list(row) for row in self._rows]
+#        orig_runs = [list(run) for run in self._xruns]
+#        
+#        for orig_i, new_i in enumerate(self._row_mapping):
+#            self._rows[new_i] = orig_rows[orig_i]    
+#            self._xruns[new_i] = orig_runs[orig_i]
+#            
+#            print '%s %s => %s' % (self._xruns[new_i], orig_i, new_i)
+#        
+#        print self._xruns
+#
+#    def unpack(self):
+#        new_rows = [list(row) for row in self._rows]
+#        new_runs = [list(run) for run in self._xruns]
+#        
+#        for orig_i, new_i in enumerate(self._row_mapping):
+#            self._rows[orig_i] = new_rows[new_i]
+#            self._xruns[orig_i] = new_runs[new_i]
+    
     def xruns(self, x, vals):
         self._xruns[x] = vals
     
@@ -59,25 +88,54 @@ class Matrix(object):
         
     ## Determines whether a row meets the runs constraints
     def _validate(self, row, run):
-        self._count_actual.clear()
-        self._count_target.clear()
-        
         count = 0
-    
+        current_run_i = 0
+        run_len = len(run)
+        
+        ## Run through the list of values and determine what the run
+        ## should be. Compare to the value of `run` once each run leg
+        ## gets tallied.
         for val in row:
             if val:
                 count += 1
             elif count > 0:
-                self._count_actual[count] += 1
-                count = 0
+                # If the there are too many legs or the value of a leg is not the
+                # expected value then this row is not valid.
+                if current_run_i >= run_len or count != run[current_run_i]:
+                    return False
+                else:
+                    count = 0
+                    current_run_i += 1
 
         if count > 0:
-            self._count_actual[count] += 1
+            # If there row ends in a row, there needs to be space left in the specified
+            # run and the value of that last slot needs to be correct.
+            return (current_run_i == run_len - 1) and run[current_run_i] == count
+        else:
+            return current_run_i == run_len
+## This function is the validation function for the general-purpose generator. I need to
+## modularize the validation function I suppose so that either one can be used. At this
+## point you can just comment one or the other out. Nothing else needs to be changed.
+#       def _validate(self, row, run):
+#        self._count_actual.clear()
+#        self._count_target.clear()
+        
+#        count = 0
+    
+#        for val in row:
+#            if val:
+#                count += 1
+#            elif count > 0:
+#                self._count_actual[count] += 1
+#                count = 0
 
-        for val in run:
-            self._count_target[val] += 1
+#        if count > 0:
+#            self._count_actual[count] += 1
+
+#        for val in run:
+#            self._count_target[val] += 1
             
-        return self._count_actual == self._count_target
+#        return self._count_actual == self._count_target
 
     def validate_row(self, x):
         return self._validate(self._getrow(x), self._xruns[x])   
@@ -110,8 +168,7 @@ class Matrix(object):
 
             # If we ever find a case where we've got a longer run than the longest
             # expected run, we've found an overloaded matrix.
-            if len(run) > 0 and len(self._getyruns(col)) and max(run) > max(self._getyruns(col)):
-                print 'OVERLOADED'
+            if len(run) > 0 and len(self._getyruns(col)) > 0 and max(run) > max(self._getyruns(col)):
                 return True
         
         return False

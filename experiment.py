@@ -25,7 +25,7 @@ def make(dim):
     for x in xrange(dim):
         matrix.yruns(x, puzzle.row2run(matrix._getcol(x)))
 
-    print '-- input --'
+    print '== input =='
     matrix.show()
     print ''
     # Reset the matrix
