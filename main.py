@@ -160,7 +160,6 @@ def traverse(matrix, row_ids, generator):
         row_id = row_ids[0]
         
         for current in generator(matrix.dim(), matrix._getxruns(row_id), matrix._validate):
-#            print '[row %d] trying %s' % (row_id, current)
             for i in row_ids[1:]:
                 update_row(matrix, i, [False for _ in xrange(matrix.dim())])
             update_row(matrix, row_id, current)
@@ -192,6 +191,15 @@ def main():
 #        print record
 #        
 #    return
+
+    matrix = experiment.test10()
+    generator = memoize_generator(generate_consecutive)
+    
+    valid = traverse(matrix, row_order(matrix), generator)
+    print valid
+    matrix.show()
+    
+    return
        
     for iteration in xrange(iterations):
         print 'starting #%d' % iteration
